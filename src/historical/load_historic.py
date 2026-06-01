@@ -1,31 +1,69 @@
 import requests
 import pandas as pd
-from google.cloud import storage
 import io
+from google.cloud import storage
 
-def upload_from_github(bucket_name, github_urls):
-    """Descarga varios archivos desde GitHub y los sube a GCS"""
+def try_read_csv(text, expected_cols):
+    """Try reading the CSV file with different separators"""
+    for sep in [",", ";", "\t", " "]:
+        try:
+            df = pd.read_csv(io.StringIO(text), header=None, sep=sep, engine="python", on_bad_lines="skip")
+            if df.shape[1] == expected_cols:
+                print(f"✔ Separator detected: '{sep}' ({expected_cols} columns)")
+                return df
+        except Exception as e:
+            continue
+    print(f"⚠ No separator could be detected with {expected_cols} columns")
+    return None
+
+def process_and_upload(bucket_name, github_files):
     storage_client = storage.Client()
     bucket = storage_client.bucket(bucket_name)
 
-    for url, config in github_urls.items():
-        # Descargar archivo desde GitHub
+    for url, config in github_files.items():
+        print(f"\nProcessing file: {config['destination']}")
+
+        # Download file from GitHub
         response = requests.get(url)
         response.raise_for_status()
 
-        # Subir directamente desde memoria
-        blob = bucket.blob(config)
-        blob.upload_from_string(response.content, content_type="text/csv")
-        
+        # Try reading with auto‑detection
+        df = try_read_csv(response.text, len(config["headers"]))
+        if df is None:
+            continue
 
-        #print(f"Archivo {url} subido a gs://{bucket_name}/{config['destination']}")
-        print(f"Archivo {url} subido a gs://{bucket_name}/{config}")
+        # Assign headers
+        df.columns = config["headers"]
 
-# Ejemplo de uso
+        # Report missing values
+        print("Missing values per column:")
+        print(df.isnull().sum())
+
+        # Save temporary file with header
+        temp_file = f"temp_{config['destination']}"
+        df.to_csv(temp_file, index=False)
+
+        # Upload to GCS
+        blob = bucket.blob(config["destination"])
+        blob.upload_from_filename(temp_file)
+
+        print(f"✅ File {config['destination']} uploaded to gs://{bucket_name}/{config['destination']}")
+
+# Configuration of your files
 github_files = {
-    "https://github.com/dcampos101/ETL-Project-GB/blob/main/files/departments.csv": "departments.csv",
-    "https://github.com/dcampos101/ETL-Project-GB/blob/main/files/hired_employees.csv": "hired_employees.csv",
-    "https://github.com/dcampos101/ETL-Project-GB/blob/main/files/jobs.csv": "jobs.csv"
+    "https://raw.githubusercontent.com/dcampos101/ETL-Project-GB/refs/heads/main/files/departments.csv": {
+        "headers": ["department_id", "department_name"],
+        "destination": "departments.csv"
+    },
+    "https://raw.githubusercontent.com/dcampos101/ETL-Project-GB/refs/heads/main/files/jobs.csv": {
+        "headers": ["job_id", "job_title"],
+        "destination": "jobs.csv"
+    },
+    "https://raw.githubusercontent.com/dcampos101/ETL-Project-GB/refs/heads/main/files/hired_employees.csv": {
+        "headers": ["employee_id", "name", "hire_date", "department_id", "job_id"],
+        "destination": "hired_employees.csv"
+    }
 }
 
-upload_from_github("bkt-test-dev", github_files)
+# Ejecutar carga
+process_and_upload("bkt-historic-files", github_files)
