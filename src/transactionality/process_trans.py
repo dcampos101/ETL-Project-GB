@@ -160,6 +160,8 @@ def insert_jobs(jobs: List[Job]):
 # -----------------------------
 @app.post("/employees")
 def insert_employees(employees: List[Employee]):
+    if len(employees) < 1 or len(employees) > 1000:
+                    raise HTTPException(status_code=400, detail="You must submit between 1 and 1000 records")
     rows = []
     for e in employees:
         try:

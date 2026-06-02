@@ -36,6 +36,17 @@ def process_and_upload(bucket_name, github_files):
         # Assign headers
         df.columns = config["headers"]
 
+        # =====================================================================
+        # Validation: Conversion to INT para hired_employees.csv
+        # =====================================================================
+        if config["destination"] == "hired_employees.csv":
+            print("Applying INT conversion validation for department_id and job_id...")
+            
+            # We convert using 'Int64' (with a capital I) to allow integers with null values ​​(NaN)
+            # errors='coerce' will transform any invalid non-numeric value into a clean null
+            df["department_id"] = pd.to_numeric(df["department_id"], errors="coerce").astype("Int64")
+            df["job_id"] = pd.to_numeric(df["job_id"], errors="coerce").astype("Int64")
+        # =====================================================================
         # Report missing values
         print("Missing values per column:")
         print(df.isnull().sum())

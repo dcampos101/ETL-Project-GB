@@ -1,1 +1,31 @@
+# config.yaml
+project: etl-gb-poc
+region: us-central1
 
+bigquery:
+  dataset: hresources
+  tables:
+    departments: departments
+    hired_employees: hired_employees
+    jobs: jobs
+  views:
+    employees_by_department_2021: vw_departaments_top_2021
+    hires_quarter_2021: vw_hiring_quarter_2021
+    
+cloud_sql:
+  instance_name: datafusion-gb-poc
+  region: us-central1
+  version: 6.11.1(6.11.1.2)
+
+storage:
+  bucket: gs:// bkt-historic-files
+  input_path: raw/
+  output_path: processed/
+  bucket: gs:// bkt-backup-tables
+  input_path: raw/
+  output_path: processed/
+
+pipeline:
+  retries: 3
+  batch_size: 500
+  log_level: INFO
