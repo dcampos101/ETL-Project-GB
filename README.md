@@ -94,10 +94,12 @@ The API includes built-in interactive documentation automatically generated at t
 
 ---
 
-##  Design Decisions & Technical Seniority
+##  Design Decisions
 
 *   **No-Code/Low-Code Scale with Cloud Data Fusion**: Instead of writing complex, hard-to-maintain custom Python scripts for heavy historical data, **Cloud Data Fusion (CDAP)** was chosen. Its **Wrangler** component handles schema parsing, character encoding, and quoted-value alignment visually, translating the logic into optimized Apache Spark jobs under the hood to load BigQuery seamlessly.
 *   **Early Validation for Streaming**: Pydantic is used in the FastAPI request schemas to guarantee that no corrupt data (wrong data types or unexpected nulls) reaches Cloud SQL or BigQuery during real-time streaming, responding immediately with standard HTTP 422 errors.
 *   **Analytical Compute Pushdown to Looker Studio**: Complex metrics queries (quarterly pivots and dynamic moving average calculations) are performed via **BigQuery Views** instead of being computed at the application level. This avoids transferring millions of rows over the network, minimizing local RAM usage and allowing **Looker Studio** to consume pre-aggregated data directly with sub-second dashboard rendering times.
 
+##  Final report
 <img width="750" height="549" alt="image" src="https://github.com/user-attachments/assets/c4fd57ef-2075-4c6d-b3ce-439dd01e33df" />
+<img width="795" height="345" alt="image" src="https://github.com/user-attachments/assets/61bf57b3-6794-4b99-9509-60fe12438855" />
